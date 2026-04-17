@@ -1,7 +1,6 @@
 {
     "id": "text-to-image",
     "name": "Text2Image",
-    "type": "model",
     "source": "https://github.com/Dari2008/Ollama-Image-Generation-Node",
     "description": "The image generator",
     "version": "1.0.1",
