@@ -106,7 +106,7 @@
                     "id": "host",
                     "label": "Host:Port",
                     "type": "string",
-                    "default": "http://192.168.178.138:11434",
+                    "default": "http://192.168.178.138:11434/v1/",
                     "tooltip": "The Host for the image generation"
                 },
                 {

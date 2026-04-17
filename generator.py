@@ -35,19 +35,24 @@ def _readData() -> dict:
 
 #{"input":{"text":"A cute cat","nodeId":"generate"},"params":{},"nodeId":"generate","workspaceDir":"C:\\Users\\dariu\\Documents\\Modly\\workspace","tempDir":"C:\\Users\\dariu\\AppData\\Local\\Temp"}
 
+
 if __name__ == "__main__":
 
     try:
         data = _readData()
-        inputData: str = data.get("input")
+        inputData: str = data.get("input").get("text", None)
         params: dict = data.get("params")
         tmpDir: str = data.get("tempDir")
+
+        if(inputData == None):
+            _send({"type": "error", "message": "No prompt provided"})
+            sys.exit(0)
 
         _write_log(json.dumps(data))
 
         width = params.get("width", 64)
         height = params.get("height", 64)
-        host = params.get("host", "http://192.168.178.138:11434/")
+        host = params.get("host", "http://192.168.178.138:11434/v1/")
         apiKey = params.get("apiKey", "ollama")
         model = params.get("model", "x/flux2-klein")
         moderation = params.get("moderation", "low")
@@ -56,6 +61,7 @@ if __name__ == "__main__":
         _log(f"Starting generation — prompt: {inputData!r}, model: {model}, size: {width}x{height}")
         _write_log(f"Params: {params}")
 
+        _write_log("inputData: " + str(inputData))
         _write_log("width: " + str(width))
         _write_log("height: " + str(height))
         _write_log("host: " + host)
@@ -65,14 +71,13 @@ if __name__ == "__main__":
         _write_log("quality: " + quality)
         _write_log("style: " + style)
 
-        _progress(5, "Connecting...")
         client = OpenAI(
             base_url=host,
             api_key=apiKey,
         )
+        partial_b64 = ""
 
-        _progress(10, "Generating...")
-        response = client.images.generate(
+        with client.images.generate(
             model=model,
             prompt=inputData,
             moderation=moderation,
@@ -81,13 +86,35 @@ if __name__ == "__main__":
             size=f"{width}x{height}",
             response_format='b64_json',
             stream=True
-        )
-        _progress(100, "Finished")
-        image_data = base64.b64decode(response)
-        out = Path(tmpDir)
+        ) as stream:
+            while True:
+                for event in stream:
+                    _write_log(f"Stream event: {event.type}")
+                    if event.type == "image.generation.progress":
+                        partial_b64 = event.b64_json or partial_b64
+                        if hasattr(event, 'progress') and event.progress is not None:
+                            pct = int(event.progress * 100)
+                            _write_log(f"Progress: {pct}%")
+                            if _progress:
+                                _progress(pct, "Generating...")
+                            _progress(pct, "Generating...")
+                    elif event.type == "image.generation.completed":
+                        partial_b64 = event.b64_json
+                        _write_log("Generation completed event received")
+                        if _progress:
+                            _progress(100, "Done")
+                        _progress(100, "Done")
+                        break
+                time.sleep(0.05)
+
+        image_data = base64.b64decode(partial_b64)
+        name = f"{int(time.time())}_{uuid.uuid4().hex[:8]}.png"
+        out = Path(tmpDir + "\\" + name)
         out.parent.mkdir(parents=True, exist_ok=True)
+
         with open(out, 'wb') as f:
             f.write(image_data)
+
         _write_log(f"Saved to: {out}")
         _send({"type": "done", "result": {"filePath": str(out)}})
     except Exception as e:
