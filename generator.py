@@ -65,12 +65,14 @@ if __name__ == "__main__":
         _write_log("quality: " + quality)
         _write_log("style: " + style)
 
+        _progress(5, "Connecting...")
         client = OpenAI(
             base_url=host,
             api_key=apiKey,
         )
-        partial_b64 = ""
-        with client.images.generate(
+
+        _progress(10, "Generating...")
+        response = client.images.generate(
             model=model,
             prompt=inputData,
             moderation=moderation,
@@ -79,25 +81,9 @@ if __name__ == "__main__":
             size=f"{width}x{height}",
             response_format='b64_json',
             stream=True
-        ) as stream:
-            _write_log(stream)
-            for event in stream:
-                _write_log(f"Stream event: {event.type}")
-                if event.type == "image.generation.progress":
-                    partial_b64 = event.b64_json or partial_b64
-                    if hasattr(event, 'progress') and event.progress is not None:
-                        pct = int(event.progress * 100)
-                        _write_log(f"Progress: {pct}%")
-                        if _progress:
-                            _progress(pct, "Generating...")
-                        _progress(pct, "Generating...")
-                elif event.type == "image.generation.completed":
-                    partial_b64 = event.b64_json
-                    _write_log("Generation completed event received")
-                    if _progress:
-                        _progress(100, "Done")
-                    _progress(100, "Done")
-        image_data = base64.b64decode(partial_b64)
+        )
+        _progress(100, "Finished")
+        image_data = base64.b64decode(response)
         out = Path(tmpDir)
         out.parent.mkdir(parents=True, exist_ok=True)
         with open(out, 'wb') as f:
