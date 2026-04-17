@@ -47,7 +47,7 @@ if __name__ == "__main__":
 
         width = params.get("width", 64)
         height = params.get("height", 64)
-        host = params.get("host", "http://192.168.178.138:11434")
+        host = params.get("host", "http://192.168.178.138:11434/v1/")
         apiKey = params.get("apiKey", "ollama")
         model = params.get("model", "x/flux2-klein")
         moderation = params.get("moderation", "low")
@@ -56,8 +56,8 @@ if __name__ == "__main__":
         _log(f"Starting generation — prompt: {inputData!r}, model: {model}, size: {width}x{height}")
         _write_log(f"Params: {params}")
 
-        _write_log("width: " + width)
-        _write_log("height: " + height)
+        _write_log("width: " + str(width))
+        _write_log("height: " + str(height))
         _write_log("host: " + host)
         _write_log("apiKey: " + apiKey)
         _write_log("model: " + model)
@@ -80,6 +80,7 @@ if __name__ == "__main__":
             response_format='b64_json',
             stream=True
         ) as stream:
+            _write_log(stream)
             for event in stream:
                 _write_log(f"Stream event: {event.type}")
                 if event.type == "image.generation.progress":
