@@ -26,6 +26,9 @@ class ImageGenerator(BaseGenerator):
     MODEL_ID     = "text-to-image"
     DISPLAY_NAME = "Text to Image"
     VRAM_GB      = 0
+
+    def __int__(self):
+        self.outputs_dir = Path("outputs")
     
     def is_downloaded(self) -> bool:
         return True
