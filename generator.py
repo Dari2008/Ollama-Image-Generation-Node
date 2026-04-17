@@ -7,19 +7,25 @@ import uuid
 from typing import Callable, Optional
 import sys
 import json
+import traceback
 
+LOG_FILE = Path(__file__).parent / "log.log"
+
+def _write_log(text: str) -> None:
+    timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+    with open(LOG_FILE, "a", encoding="utf-8") as f:
+        f.write(f"[{timestamp}] {text}\n")
 
 def _send(message: dict) -> None:
     sys.stdout.write(json.dumps(message) + "\n")
     sys.stdout.flush()
 
-
 def _progress(percent: int, label: str) -> None:
     _send({"type": "progress", "percent": int(percent), "label": label})
 
-
 def _log(message: str) -> None:
     _send({"type": "log", "message": message})
+    _write_log(f"[LOG] {message}")
 
 
 class ImageGenerator():
@@ -27,8 +33,9 @@ class ImageGenerator():
     DISPLAY_NAME = "Text to Image"
     VRAM_GB      = 0
 
-    def __init__(self):  # was __int__
+    def __init__(self):
         self.outputs_dir = Path("outputs")
+        _write_log("ImageGenerator instantiated")
 
     def is_downloaded(self) -> bool:
         return True
@@ -44,60 +51,87 @@ class ImageGenerator():
         image_path: str,
         output_path: str,
         params: dict,
-        prompt: str = "A photorealistic object on a white background",  # was missing
+        prompt: str = "A photorealistic object on a white background",
         progress_cb: Optional[Callable[[int, str], None]] = None,
         cancel_event: Optional[threading.Event] = None,
     ) -> Path:
-        width = params.get("width", 64)
-        height = params.get("height", 64)
-        host = params.get("host", "http://192.168.178.138:11434")
-        apiKey = params.get("apiKey", "ollama")
-        model = params.get("model", "x/flux2-klein")
-        moderation = params.get("moderation", "low")
-        quality = params.get("quality", "medium")
-        style = params.get("style", "vivid")
+        try:
+            width = params.get("width", 64)
+            height = params.get("height", 64)
+            host = params.get("host", "http://192.168.178.138:11434")
+            apiKey = params.get("apiKey", "ollama")
+            model = params.get("model", "x/flux2-klein")
+            moderation = params.get("moderation", "low")
+            quality = params.get("quality", "medium")
+            style = params.get("style", "vivid")
 
-        _log(f"Params: {params}")
+            _log(f"Starting generation — prompt: {prompt!r}, model: {model}, size: {width}x{height}")
+            _write_log(f"Params: {params}")
 
-        client = OpenAI(
-            base_url=host,
-            api_key=apiKey,
-        )
+            client = OpenAI(
+                base_url=host,
+                api_key=apiKey,
+            )
 
-        partial_b64 = ""
+            partial_b64 = ""
 
-        with client.images.generate(
-            model=model,
-            prompt=prompt,
-            moderation=moderation,
-            quality=quality,
-            style=style,
-            size=f"{width}x{height}",
-            response_format='b64_json',
-            stream=True
-        ) as stream:
-            for event in stream:
-                if event.type == "image.generation.progress":
-                    partial_b64 = event.b64_json or partial_b64
-                    if hasattr(event, 'progress') and event.progress is not None:
-                        if progress_cb:
-                            progress_cb(int(event.progress * 100), "Generating...")
-                        _progress(int(event.progress * 100), "Generating...")
-                elif event.type == "image.generation.completed":
-                    partial_b64 = event.b64_json
-                    if progress_cb:
-                        progress_cb(100, "Done")
-                    _progress(100, "Done")
+            try:
+                with client.images.generate(
+                    model=model,
+                    prompt=prompt,
+                    moderation=moderation,
+                    quality=quality,
+                    style=style,
+                    size=f"{width}x{height}",
+                    response_format='b64_json',
+                    stream=True
+                ) as stream:
+                    for event in stream:
+                        _write_log(f"Stream event: {event.type}")
+                        if event.type == "image.generation.progress":
+                            partial_b64 = event.b64_json or partial_b64
+                            if hasattr(event, 'progress') and event.progress is not None:
+                                pct = int(event.progress * 100)
+                                _write_log(f"Progress: {pct}%")
+                                if progress_cb:
+                                    progress_cb(pct, "Generating...")
+                                _progress(pct, "Generating...")
+                        elif event.type == "image.generation.completed":
+                            partial_b64 = event.b64_json
+                            _write_log("Generation completed event received")
+                            if progress_cb:
+                                progress_cb(100, "Done")
+                            _progress(100, "Done")
+            except Exception as e:
+                _write_log(f"[ERROR] Stream failed: {e}\n{traceback.format_exc()}")
+                raise
 
-        image_data = base64.b64decode(partial_b64)
+            if not partial_b64:
+                _write_log("[ERROR] No b64 data received from stream")
+                raise ValueError("No image data received from the model")
 
-        out = Path(output_path)
-        out.parent.mkdir(parents=True, exist_ok=True)
-        with open(out, 'wb') as f:
-            f.write(image_data)
+            try:
+                image_data = base64.b64decode(partial_b64)
+            except Exception as e:
+                _write_log(f"[ERROR] base64 decode failed: {e}\n{traceback.format_exc()}")
+                raise
 
-        _log(f"Saved to: {out}")
-        return out
+            try:
+                out = Path(output_path)
+                out.parent.mkdir(parents=True, exist_ok=True)
+                with open(out, 'wb') as f:
+                    f.write(image_data)
+                _write_log(f"Saved to: {out}")
+            except Exception as e:
+                _write_log(f"[ERROR] Failed to write output file: {e}\n{traceback.format_exc()}")
+                raise
+
+            _log(f"Saved to: {out}")
+            return out
+
+        except Exception as e:
+            _write_log(f"[ERROR] generate() failed: {e}\n{traceback.format_exc()}")
+            raise
 
     @classmethod
     def params_schema(cls) -> list:
