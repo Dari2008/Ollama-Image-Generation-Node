@@ -47,7 +47,7 @@ if __name__ == "__main__":
 
         width = params.get("width", 64)
         height = params.get("height", 64)
-        host = params.get("host", "http://192.168.178.138:11434/v1/")
+        host = params.get("host", "http://192.168.178.138:11434/")
         apiKey = params.get("apiKey", "ollama")
         model = params.get("model", "x/flux2-klein")
         moderation = params.get("moderation", "low")
