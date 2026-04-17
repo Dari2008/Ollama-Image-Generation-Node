@@ -23,8 +23,10 @@ class ImageGenerator(BaseGenerator):
     
     def generate(
         self,
-        text: str,
+        image_path: str,       # Modly passes this — we IGNORE it (we use prompt instead)
+        output_path: str,
         params: dict,
+        prompt: str = "A photorealistic object on a white background",
         progress_cb: Optional[Callable[[int, str], None]] = None,
         cancel_event: Optional[threading.Event] = None,
     ) -> Path:
@@ -45,7 +47,7 @@ class ImageGenerator(BaseGenerator):
 
         response = client.images.generate(
             model=model,
-            prompt=text,
+            prompt=prompt,
             moderation=moderation,
             quality=quality,
             style=style,
