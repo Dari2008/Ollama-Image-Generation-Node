@@ -40,8 +40,9 @@ class ImageGenerator():
         return
     
     def generate(
-        self,
-        image_bytes: bytes,
+        self,    
+        image_path: str,
+        output_path: str,      # <-- use this
         params: dict,
         progress_cb: Optional[Callable[[int, str], None]] = None,
         cancel_event: Optional[threading.Event] = None,
@@ -96,6 +97,9 @@ class ImageGenerator():
         path = self.outputs_dir / name
         print("generation: ", path)
         with open(path, 'wb') as f:
+            f.write(image_data)
+            
+        with open(output_path, 'wb') as f:
             f.write(image_data)
 
         return path
