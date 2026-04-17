@@ -4,6 +4,8 @@
     "source": "https://github.com/Dari2008/Ollama-Image-Generation-Node",
     "description": "The image generator",
     "version": "1.0.1",
+    "type": "process",
+    "entry": "generator.py",
     "author": "Darius Frobeen",
     "generator_class": "ImageGenerator",
     "tags": [
