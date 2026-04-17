@@ -1,6 +1,6 @@
 import base64
 from openai import OpenAI
-from services.generators.base import BaseGenerator, smooth_progress, GenerationCancelled
+# from services.generators.base import BaseGenerator, smooth_progress, GenerationCancelled
 import threading
 from pathlib import Path
 import time
@@ -22,7 +22,7 @@ def _progress(percent: int, label: str) -> None:
 def _log(message: str) -> None:
     _send({"type": "log", "message": message})
 
-class ImageGenerator(BaseGenerator):
+class ImageGenerator():
     MODEL_ID     = "text-to-image"
     DISPLAY_NAME = "Text to Image"
     VRAM_GB      = 0
