@@ -6,6 +6,21 @@ from pathlib import Path
 import time
 import uuid
 from typing import Callable, Optional
+import sys
+import json
+
+
+def _send(message: dict) -> None:
+    sys.stdout.write(json.dumps(message) + "\n")
+    sys.stdout.flush()
+
+
+def _progress(percent: int, label: str) -> None:
+    _send({"type": "progress", "percent": int(percent), "label": label})
+
+
+def _log(message: str) -> None:
+    _send({"type": "log", "message": message})
 
 class ImageGenerator(BaseGenerator):
     MODEL_ID     = "text-to-image"
@@ -23,10 +38,8 @@ class ImageGenerator(BaseGenerator):
     
     def generate(
         self,
-        image_path: str,       # Modly passes this — we IGNORE it (we use prompt instead)
-        output_path: str,
+        image_bytes: bytes,
         params: dict,
-        prompt: str = "A photorealistic object on a white background",
         progress_cb: Optional[Callable[[int, str], None]] = None,
         cancel_event: Optional[threading.Event] = None,
     ) -> Path:
@@ -35,6 +48,8 @@ class ImageGenerator(BaseGenerator):
         host = params.get("host", "http://192.168.178.138:11434")
         apiKey = params.get("apiKey", "ollama")
         model = params.get("model", "x/flux2-klein")
+
+        _log(params.__str__())
 
         client = OpenAI(
             base_url=host,
@@ -45,7 +60,11 @@ class ImageGenerator(BaseGenerator):
         style = params.get("style", "vivid")
 
 
-        response = client.images.generate(
+        partial_b64 = ""
+        total_chunks = 0
+
+        # First pass to count isn't possible with streams, so we track by completion event
+        with client.images.generate(
             model=model,
             prompt=prompt,
             moderation=moderation,
@@ -53,12 +72,26 @@ class ImageGenerator(BaseGenerator):
             style=style,
             size=str(width) + "x" + str(height),
             response_format='b64_json',
-        )
+            stream=True
+        ) as stream:
+            for event in stream:
+                # Event types: 'image.generation.progress' and 'image.generation.completed'
+                if event.type == "image.generation.progress":
+                    partial_b64 = event.b64_json or partial_b64
+                    if hasattr(event, 'progress') and event.progress is not None:
+                        if progress_cb:
+                            progress_cb(int(event.progress * 100), "Generating...")
+                elif event.type == "image.generation.completed":
+                    partial_b64 = event.b64_json
+                    if progress_cb:
+                        progress_cb(100, "Done")
 
-        image_data = base64.b64decode(response.data[0].b64_json)
+        image_data = base64.b64decode(partial_b64)
+
         self.outputs_dir.mkdir(parents=True, exist_ok=True)
         name = f"{int(time.time())}_{uuid.uuid4().hex[:8]}.png"
         path = self.outputs_dir / name
+        print("generation: ", path)
         with open(path, 'wb') as f:
             f.write(image_data)
 
