@@ -1,0 +1,141 @@
+{
+    "id": "text-to-image",
+    "name": "Text2Image",
+    "type": "model",
+    "source": "https://github.com/lightningpixel/modly-hunyuan3d-mini-extension",
+    "description": "The image generator",
+    "version": "1.0.1",
+    "author": "Darius Frobeen",
+    "generator_class": "ImageGenerator",
+    "tags": [
+        "text-to-image"
+    ],
+    "nodes": [
+        {
+            "id": "generate",
+            "name": "Generate Image",
+            "input": "text",
+            "output": "image",
+            "params_schema": [
+                {
+                    "id": "model",
+                    "label": "Image Model",
+                    "type": "select",
+                    "default": "x/flux2-klein",
+                    "options": [
+                        {
+                            "value": "x/z-image-turbo",
+                            "label": "x/z-image-turbo"
+                        },
+                        {
+                            "value": "x/flux2-klein",
+                            "label": "x/flux2-klein"
+                        }
+                    ],
+                    "tooltip": "Octree resolution for mesh reconstruction. Higher = more detail but slower and more VRAM."
+                },
+                {
+                    "id": "style",
+                    "label": "Style",
+                    "type": "select",
+                    "default": "vivid",
+                    "options": [
+                        {
+                            "value": "natural",
+                            "label": "natural"
+                        },
+                        {
+                            "value": "vivid",
+                            "label": "vivid"
+                        }
+                    ],
+                    "tooltip": "The Style of the image"
+                },
+                {
+                    "id": "moderation",
+                    "label": "moderation",
+                    "type": "select",
+                    "default": "low",
+                    "options": [
+                        {
+                            "value": "low",
+                            "label": "low"
+                        },
+                        {
+                            "value": "auto",
+                            "label": "auto"
+                        }
+                    ],
+                    "tooltip": "The Moderation for the image"
+                },
+                {
+                    "id": "quality",
+                    "label": "Quality",
+                    "type": "select",
+                    "default": "medium",
+                    "options": [
+                        {
+                            "value": "standard",
+                            "label": "standard"
+                        },
+                        {
+                            "value": "hd",
+                            "label": "hd"
+                        },
+                        {
+                            "value": "low",
+                            "label": "low"
+                        },
+                        {
+                            "value": "medium",
+                            "label": "medium"
+                        },
+                        {
+                            "value": "auto",
+                            "label": "auto"
+                        },
+                        {
+                            "value": "high",
+                            "label": "high"
+                        }
+                    ],
+                    "tooltip": "The Quality of the image"
+                },
+                {
+                    "id": "host",
+                    "label": "Host:Port",
+                    "type": "string",
+                    "default": "http://192.168.178.138:11434",
+                    "tooltip": "The Host for the image generation"
+                },
+                {
+                    "id": "apiKey",
+                    "label": "apiKey",
+                    "type": "string",
+                    "default": "ollama",
+                    "tooltip": "The API Key"
+                },
+                {
+                    "id": "width",
+                    "label": "Width",
+                    "type": "int",
+                    "default": 64,
+                    "min": 16,
+                    "max": 1024,
+                    "step": 1,
+                    "tooltip": "The width of the output image"
+                },
+                {
+                    "id": "height",
+                    "label": "Height",
+                    "type": "int",
+                    "default": 64,
+                    "min": 16,
+                    "max": 1024,
+                    "step": 1,
+                    "tooltip": "The height of the output image"
+                }
+            ]
+        }
+    ]
+}
