@@ -9,7 +9,7 @@ import sys
 import json
 import traceback
 
-LOG_FILE = Path(__file__).parent / "log.log"
+LOG_FILE = "C:\\Users\\dariu\\Downloads\\log.log"
 
 def _write_log(text: str) -> None:
     timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
